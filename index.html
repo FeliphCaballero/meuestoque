@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gestão de Estoque</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .tab-btn.active { border-color: #4f46e5; color: #4f46e5; }
+        @keyframes slideIn { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .toast-slide-in { animation: slideIn 0.5s forwards; }
+        @keyframes slideOut { from { transform: translateY(0); opacity: 1; } to { transform: translateY(100%); opacity: 0; } }
+        .toast-slide-out { animation: slideOut 0.5s forwards; }
+        .login-container { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <!-- Main Application -->
+    <div id="app-container">
+        <div class="container mx-auto p-4 md:p-6 lg:p-8 max-w-7xl">
+            <header class="mb-6">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-700">
+                        <i class="fas fa-cubes mr-2"></i>Sistema de Gestão de Estoque
+                    </h1>
+                    <p class="text-sm text-gray-500 mt-1">
+                        Sistema de controle de materiais
+                    </p>
+                </div>
+            </header>
+
+            <div class="mb-6 border-b border-gray-200">
+                <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                    <button id="tab-movimentar" class="tab-btn active whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm">
+                        <i class="fas fa-exchange-alt mr-2"></i>Movimentar Estoque
+                    </button>
+                    <button id="tab-gerenciar" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-box-open mr-2"></i>Gerenciar Materiais
+                    </button>
+                    <button id="tab-historico" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700">
+                        <i class="fas fa-history mr-2"></i>Histórico Completo
+                    </button>
+                </nav>
+            </div>
+
+            <main>
+                <!-- Aba: Movimentar Estoque -->
+                <div id="content-movimentar" class="tab-content">
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm">
+                            <h2 class="text-xl font-semibold mb-4">Operação de Estoque</h2>
+                            <div class="mb-4">
+                                <label for="barcode-scanner-input" class="block text-sm font-medium text-gray-700 mb-1">
+                                    Escanear Código de Barras
+                                </label>
+                                <div class="relative">
+                                    <i class="fas fa-barcode absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                                    <input type="text" id="barcode-scanner-input" 
+                                           placeholder="Aguardando leitura do código..." 
+                                           class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                                </div>
+                            </div>
+
+                            <div id="scanned-product-details" class="mt-6 p-4 bg-gray-50 rounded-md border border-gray-200 hidden"></div>
+                            <div id="product-not-found" class="mt-6 p-4 bg-red-50 text-red-700 rounded-md border border-red-200 hidden">
+                                <p><i class="fas fa-exclamation-triangle mr-2"></i>Material não cadastrado com este código de barras.</p>
+                            </div>
+                            <div id="stock-actions" class="mt-6 hidden"></div>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h2 class="text-xl font-semibold mb-4">Últimas Movimentações</h2>
+                            <div id="movements-history" class="space-y-3 h-96 overflow-y-auto">
+                                <p class="text-gray-500 text-sm">Nenhuma movimentação registrada.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba: Gerenciar Materiais -->
+                <div id="content-gerenciar" class="tab-content hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-xl font-semibold mb-4">Adicionar Novo Material</h2>
+                        <form id="add-product-form" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                            <div class="md:col-span-1">
+                                <label for="barcode" class="block text-sm font-medium text-gray-700">Código de Barras *</label>
+                                <input type="text" id="barcode" required 
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label for="description" class="block text-sm font-medium text-gray-700">Nome/Descrição *</label>
+                                <input type="text" id="description" required 
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label for="uom" class="block text-sm font-medium text-gray-700">Unidade de Medida *</label>
+                                <input type="text" id="uom" placeholder="ex: un, cx, m" required 
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                            </div>
+                            <div class="md:col-span-1">
+                                <label for="initial-stock" class="block text-sm font-medium text-gray-700">Estoque Inicial *</label>
+                                <input type="number" id="initial-stock" required value="0" min="0" 
+                                       class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                            </div>
+                            <div class="md:col-span-4">
+                                <button type="submit" class="w-full md:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-md">
+                                    <i class="fas fa-plus mr-2"></i>Adicionar Material
+                                </button>
+                            </div>
+                        </form>
+
+                        <hr class="my-8">
+
+                        <h2 class="text-xl font-semibold mb-4">Lista de Materiais</h2>
+                        <input type="text" id="search-materials" 
+                               placeholder="Pesquisar por nome ou código de barras..." 
+                               class="w-full mb-4 px-3 py-2 border border-gray-300 rounded-md">
+
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full bg-white">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">Código de Barras</th>
+                                        <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                                        <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">Estoque Atual</th>
+                                        <th class="py-3 px-4 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="products-table-body" class="divide-y divide-gray-200">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Aba: Histórico Completo -->
+                <div id="content-historico" class="tab-content hidden">
+                    <div class="bg-white p-6 rounded-lg shadow-sm">
+                        <h2 class="text-xl font-semibold mb-4">Histórico de Movimentações</h2>
+                        <div class="mb-4 flex flex-col md:flex-row gap-4">
+                            <input type="text" id="search-history" 
+                                   placeholder="Pesquisar por material ou observação..." 
+                                   class="flex-1 px-3 py-2 border border-gray-300 rounded-md">
+                            <select id="filter-movement-type" class="px-3 py-2 border border-gray-300 rounded-md">
+                                <option value="">Todos os tipos</option>
+                                <option value="Entrada">Apenas Entradas</option>
+                                <option value="Saída">Apenas Saídas</option>
+                            </select>
+                        </div>
+                        <div id="full-movements-history" class="space-y-3 max-h-96 overflow-y-auto">
+                            <p class="text-gray-500 text-sm">Nenhuma movimentação registrada.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div id="edit-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">Editar Material</h3>
+                <button id="close-modal-btn" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
+            </div>
+            <form id="edit-product-form">
+                <input type="hidden" id="edit-product-id">
+                <div class="space-y-4">
+                    <div>
+                        <label for="edit-barcode" class="block text-sm font-medium text-gray-700">Código de Barras</label>
+                        <input type="text" id="edit-barcode" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                    </div>
+                    <div>
+                        <label for="edit-description" class="block text-sm font-medium text-gray-700">Descrição</label>
+                        <input type="text" id="edit-description" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                    </div>
+                    <div>
+                        <label for="edit-uom" class="block text-sm font-medium text-gray-700">Unidade de Medida</label>
+                        <input type="text" id="edit-uom" required 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                    </div>
+                    <div>
+                        <label for="edit-stock" class="block text-sm font-medium text-gray-700">Estoque</label>
+                        <input type="number" id="edit-stock" required min="0" 
+                               class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm px-3 py-2">
+                    </div>
+                </div>
+                <div class="mt-6 flex justify-end space-x-3">
+                    <button type="button" id="cancel-edit-btn" 
+                            class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded-md">
+                        Cancelar
+                    </button>
+                    <button type="submit" 
+                            class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md">
+                        Salvar Alterações
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+        <div class="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
+            <div class="mt-3 text-center">
+                <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                    <i class="fas fa-exclamation-triangle text-red-600 text-xl"></i>
+                </div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900 mt-4">Excluir Material</h3>
+                <div class="mt-2 px-7 py-3">
+                    <p class="text-sm text-gray-500">
+                        Você tem certeza que deseja excluir este material? Esta ação não pode ser desfeita.
+                    </p>
+                </div>
+                <div class="items-center px-4 py-3 space-x-4">
+                    <button id="cancel-delete-btn" 
+                            class="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300">
+                        Cancelar
+                    </button>
+                    <button id="confirm-delete-btn" 
+                            class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700">
+                        Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-gray-800 text-white py-3 px-5 rounded-lg shadow-lg hidden z-50">
+        <p id="toast-message"></p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
